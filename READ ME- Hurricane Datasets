@@ -1,0 +1,11 @@
+Hurricane Harvey Tweets
+Recent tweets on Hurricane Harvey( downloaded on 12/09/2017)
+https://www.kaggle.com/dan195/hurricaneharvey
+Context
+Tweets containing Hurricane Harvey from the morning of 8/25/2017. I hope to keep this updated if computer problems do not persist. 
+*8/30 Update This update includes the most recent tweets tagged "Tropical Storm Harvey", which spans from 8/20 to 8/30 as well as the properly merged version of dataset including Tweets from when Harvey before it was downgraded back to a tropical storm. 
+Inspiration of Data Owner
+What are the popular tweets?
+Can we find popular news stories from this?
+Can we identify people likely staying or leaving, and is there a difference in sentiment between the two groups?
+Is it possible to predict popularity with respect to retweets, likes, and shares?
