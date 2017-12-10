@@ -75,10 +75,10 @@ accessURL <- "https://api.twitter.com/oauth/access_token"
 authURL <- "https://api.twitter.com/oauth/authorize"
 ```
 ```{r}
-API_key <- "2qLDuHN4LJMP5d5YK9fPzlCx7"
-API_secret <- "x8o70TIssayk12WVsWrFan7gaeE57skDodZI7PBrBHY1E10feq"
-Access_token <- "798702648-YOM2C7JtBWLixaGPlwqiSuavyXHkHQzg6rZTEqu7"
-Access_token_secret <- "RkJkqJnZz1ac5aXD2P6OeE9k3a7m0bYeVsfWb4lm2nFDG"
+API_key <- "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+API_secret <- "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+Access_token <- "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+Access_token_secret <- "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
 ```
 ```{r}
 devtools::install_version("httr", version="1.0.0", repos="http://cran.us.r-project.org")
@@ -103,15 +103,12 @@ str(cibcbank)
 ```{r}
 str(RoyalBank)
 ```
-
 ```{r}
 str(ScotiaBank)
 ```
-
 ```{r}
 str(TDBank)
 ```
-
 ```{r}
 str(BMObank)
 ```
@@ -127,7 +124,6 @@ Top5BanksDf <- twListToDF(Top5Banks)
 ```{r}
 summary(Top5BanksDf)
 ```
-
 ```{r}
 str(Top5BanksDf)
 ```
@@ -141,7 +137,6 @@ Bank_tweet_corpus
 
 Bank_tweet_corpus[[1]]
 ```
-
 ```{r}
 inspect(Bank_tweet_corpus[1:5])
 ```
@@ -178,18 +173,15 @@ Bank_tweet_corpus_clean = tm_map(Bank_tweet_corpus_clean, stemDocument)
 ```{r}
 inspect(Bank_tweet_corpus_clean[1:5])
 ```
-
 #Data preparation - splitting text documents into words
 
 ####Build a Document Term Matrix-
 ```{r}
 Bank_tweet_dtm <- DocumentTermMatrix(Bank_tweet_corpus_clean)
 ```
-
 ```{r}
 inspect(Bank_tweet_dtm)
 ```
-
 #Find frequent Terms that appeared 50 times
 ```{r}
 Bank_tweet_FreqTerm <- findFreqTerms(Bank_tweet_dtm, lowfreq = 50)
@@ -220,7 +212,6 @@ dim(Bank_tweet_dtm.train)
 freq <- sort(colSums(as.matrix(Bank_tweet_dtm)), decreasing=TRUE)   
 head(freq, 14)
 ```
-
 ```{r}
 WordTable<- data.frame(word=names(freq), freq=freq)   
 head(WordTable) 
@@ -232,7 +223,6 @@ TweetPlot <- ggplot(subset(WordTable, freq > 250), aes(x = reorder(word, -freq),
           theme(axis.text.x=element_text(angle=45, hjust=1))
 TweetPlot   
 ```
-
 #Determine the Frequent Terms
 ```{r}
 Tweet_Freq_Terms <- findFreqTerms(Bank_tweet_dtm.train, 10)
@@ -242,11 +232,9 @@ length((Tweet_Freq_Terms))
 ```{r}
 Bank_tweet_dtm.train.nb <- DocumentTermMatrix(Bank_tweet_corpus_clean.train, control = list(dictionary =Tweet_Freq_Terms))
 ```
-
 ```{r}
 dim(Bank_tweet_dtm.train.nb)
 ```
-
 ```{r}
 Bank_tweet_dtm.test.nb <- DocumentTermMatrix(Bank_tweet_corpus_clean.test, control = list(dictionary =Tweet_Freq_Terms))
 ```
@@ -276,7 +264,6 @@ Tweet.testNB <- apply(Bank_tweet_dtm.test.nb, MARGIN = 2, convert_count)
 install.packages("e1071",  repos = "http://cran.us.r-project.org")
 library(e1071)
 ```
-
 ```{r}
 system.time(Bank_tweet_classifier <- naiveBayes(Tweet.trainNB, Top5BanksDf.train$isRetweet, laplace = 1))
 ```
@@ -288,7 +275,6 @@ system.time(TweetPred <- predict(Bank_tweet_classifier, newdata = Tweet.testNB))
 ```{r}
 table("Predictions" = TweetPred, "Actual" = Top5BanksDf.test$isRetweet)
 ```
-
 ```{r}
 install.packages("caret", repos = "http://cran.us.r-project.org")
 library(caret)
@@ -299,7 +285,6 @@ A (confusion matrix)[https://en.wikipedia.org/wiki/Confusion_matrix] counts how 
 ```{r}
 Bank_Tweet_ConfMatrix <- confusionMatrix(TweetPred, Top5BanksDf.test$isRetweet)
 ```
-
 ```{r}
 Bank_Tweet_ConfMatrix
 ```
@@ -321,53 +306,6 @@ Part Two
 no_of_tweets = c(length(Bank_tweet_corpus_clean))
 no_of_tweets
 ```
-#Clustering By Similarity Terms
-
-#For ease of Processing , there is need to remove uninteresting or infrequent words.
-
-#Remove Sparse Terms from the Term-document matrix-86% Empty space------
-```{r}
-Bank_Tweet_SparseTM <- removeSparseTerms(Bank_tweet_dtm, sparse = 0.86)
-Bank_Tweet_SparseTM
-```
-
-#Create DOCUMENT Term Matrix
-```{r}
-Bank_tweet_dtm <- DocumentTermMatrix(Bank_tweet_corpus_clean)
-Bank_tweet_dtm_matrix <- as.matrix(Bank_tweet_dtm)
-Bank_tweet_dtm_matrix <- sort(colSums(Bank_tweet_dtm_matrix), decreasing = TRUE)
-head(Bank_tweet_dtm_matrix)
-```
-
-```{r}
-Bank_tweet_dtm_matrix.df <- as.data.frame(Bank_tweet_dtm_matrix)
-```
-#Scale the data
-```{r}
-Bank_tweet_dtm.scale <- scale(Bank_tweet_dtm_matrix.df, center = TRUE, scale = TRUE)
-```
-#create the distance matrix
-```{r}
-Bank_tweet.dist <- dist(Bank_tweet_dtm.scale, method = "euclidian", diag = FALSE, upper = FALSE, p = 5)
-```
-#Cluster the data
-```{r}
-Bank_tweet.dist.fit <- hclust(Bank_tweet.dist, method = "ward.D")
-```
-##Visualization
-```{r}
-library(stats)
-plot(Bank_tweet.dist.fit, xlab = "Popular Words Distr", ylab = "Height", hang = -0.01, check = TRUE, axes = TRUE, frame.plot = TRUE, ann = TRUE, main = "Cluster - Top 5 Banks Tweet", col = "red")
-dev.copy(jpeg, 'HeightDistr.jpeg')
-dev.off()
-```
-#Visualize the result using k=3 Cluster
-```{r}
-plot(Bank_tweet.dist.fit, hang = -0.01)
-groups <- cutree(Bank_tweet.dist.fit, k =3)
-rect.hclust(Bank_tweet.dist.fit, k = 3, border = "red")
-```
-
 #Next is to determine the positive and negative words in the tweets of the five banks.
 ##Scan Positive and Negative words into R
 ```{r}
@@ -420,7 +358,6 @@ RoyalBank_text <- sapply(RoyalBank, function(x) x$getText())
 ScotiaBank_text <- sapply(ScotiaBank, function(x) x$getText())
 TDBank_text <- sapply(TDBank, function(x) x$getText())
 ```
-
 ######Create dataframe for each bank's tweet
 ```{r}
 library(dplyr)
@@ -431,8 +368,7 @@ RoyalBankdf <- as.data.frame(RoyalBank_text)
 ScotiaBankdf <- as.data.frame(ScotiaBank_text)
 TDBankdf <- as.data.frame(TDBank_text)
 ```
-
-#Analyze score for tOP 5 Banks------okay
+#Analyze score for tOP 5 Banks
 ```{r}
 Top5BanksSentimentScoce <- score.sentiment(Top5BanksDf$text, pos_words, neg_words, .progress='text')
 ```
@@ -453,18 +389,15 @@ TDscores <- score.sentiment(TDBankdf$TDBank_text, pos_words, neg_words, .progres
 ```{r}
 summary(BMOscores$score)
 ```
-
 ```{r}
 summary(cibcscores$score)
 ```
 ```{r}
 summary(RBCscores$score)
 ```
-
 ```{r}
 summary(Scotiascores$score)
 ```
-
 ```{r}
 summary(TDscores$score)
 ```
@@ -472,19 +405,15 @@ summary(TDscores$score)
 ```{r}
 hist(BMOscores$score, breaks = 12, col = "blue", border = "pink")
 ```
-
 ```{r}
 hist(cibcscores$score, breaks = 12, col = "blue", border = "pink")
 ```
-
 ```{r}
 hist(RBCscores$score, breaks = 12, col = "blue", border = "pink")
 ```
-
 ```{r}
 hist(Scotiascores$score, breaks = 12, col = "blue", border = "pink")
 ```
-
 ```{r}
 hist(TDscores$score, breaks = 12, col = "blue", border = "pink")
 ```
@@ -492,25 +421,18 @@ hist(TDscores$score, breaks = 12, col = "blue", border = "pink")
 ```{r}
 table(BMOscores$score)
 ```
-
 ```{r}
 table(cibcscores$score)
 ```
-
 ```{r}
 table(RBCscores$score)
 ```
-
 ```{r}
 table(Scotiascores$score)
 ```
-
 ```{r}
 table(TDscores$score)
 ```
-
-
-
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*
 
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
