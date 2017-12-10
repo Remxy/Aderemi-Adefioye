@@ -1,0 +1,190 @@
+---
+output:
+  word_document:
+    keep_md: yes
+  pdf_document: default
+  html_document: default
+---
+---
+title: "R Notebook"
+output:
+  word_document: 
+    highlight: null
+    toc: yes
+  ---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+# Read in the data
+```{r}
+Data1 = read.csv("TS_Harvey_Tweets.csv", stringsAsFactors=FALSE)
+Data2 = read.csv("Hurricane_Harvey.csv", stringsAsFactors=FALSE)
+str(Data1)
+str(Data2)
+```
+# Merge the data into one
+```{r}
+MergedData <- merge(Data1, Data2, all = TRUE)
+```
+```{r}
+summary(MergedData)
+```
+```{r}
+str(MergedData)
+```
+```{r}
+install.packages("e1071",  repos = "http://cran.us.r-project.org")
+require(e1071)
+```
+
+```{r}
+install.packages("tm",  repos = "http://cran.us.r-project.org")
+require(tm)
+install.packages("SnowballC",  repos = "http://cran.us.r-project.org")
+require(SnowballC)
+```
+
+# Create corpus--
+```{r}
+library(tm)
+Harvey_corpus = Corpus(VectorSource(MergedData$Tweet))
+```
+
+# Look at corpus---
+```{r}
+Harvey_corpus
+
+Harvey_corpus[[1]]
+```
+```{r}
+inspect(Harvey_corpus[1:5])
+```
+
+```{r}
+as.character(Harvey_corpus[[3]])
+```
+```{r}
+lapply(Harvey_corpus[1:5], as.character)
+```
+# Preprocessing of Data
+# Data cleaning--
+```{r}
+Harvey_corpus_clean = tm_map(Harvey_corpus, tolower)
+Harvey_corpus_clean = tm_map(Harvey_corpus_clean, removePunctuation)
+Harvey_corpus_clean = tm_map(Harvey_corpus_clean, removeWords, c("apple", stopwords("english")))
+Harvey_corpus_clean <- tm_map(Harvey_corpus_clean, removeWords, c('harvey', 'hurricane', 'http', 'https', 'hurrican', 'the', 'for',  'hurricaneharvey', 'twitter', 'com', 'www'))
+removeURL <- function(x) gsub("http[[:alnum:]]*", "", x)
+Harvey_corpus_clean <- tm_map(Harvey_corpus_clean, content_transformer(removeURL))
+Harvey_corpus_clean = tm_map(Harvey_corpus_clean, stemDocument)
+```
+
+```{r}
+inspect(Harvey_corpus_clean[1:5])
+```
+#Data preparation - splitting text documents into words
+
+###Create Document Term Matrix------
+```{r}
+Harvey_dtm <- DocumentTermMatrix(Harvey_corpus_clean)
+```
+#inspect the dtm--------
+```{r}
+inspect(Harvey_dtm)
+```
+
+#Find frequent Terms that appeared 200 times
+```{r}
+HarveyFreqTerm <- findFreqTerms(Harvey_dtm, lowfreq = 200)
+HarveyFreqTerm[1:30]
+```
+
+####Create wordcloud
+```{r}
+set.seed(2210)
+install.packages("wordcloud", repos = "http://cran.us.r-project.org")
+require(wordcloud)
+```
+#Create word cloud
+```{r}
+wordcloud(Harvey_corpus_clean, min.freq = 100, max.words = 100, scale=c(2.2, .5), colors = brewer.pal(8, "Dark2"), random.color = T, random.order = F)
+```
+#Loading Positive and Negative words 
+
+```{r}
+positive_words <- scan("C:/Users/remmy/Documents/Capstone/positive_words.txt", what="character", comment.char=";")
+negative_words <- scan("C:/Users/remmy/Documents/Capstone/negative_words.txt", what="character", comment.char=";")
+```
+#Add your words into the positve and negative words list
+```{r}
+positive_words <- c(positive_words, 'upgrade', 'new', 'nice', 'good', 'horizon', 'donation')
+negative_words <- c(negative_words, 'wtf', 'wait', 'waiting', 'bad', 'behind', 'severe', 'frightening', 'blowout', 'storms', 'tornadoes', 'damaged', 'terrible', 'ugly', 'back', 'worse', 'shitty', 'bad', 'no', 'freaking', 'suck', 'horrible')
+```
+#Define Function to calculate the sentiment score
+```{r}
+score.sentiment <- function(sentences, positive_words, negative_words, .progress = 'none')
+{
+require(plyr)
+require(stringr)
+scores <- laply(sentences, function(sentence, positive_words, negative_words) {
+  sentence <- gsub('https://'," ", sentence) # removes https://
+  sentence <- gsub('http://'," ", sentence) # removes http://
+  sentence <- gsub('[^[:graph:]]', " ", sentence) ## removes graphic characters 
+       #like emoticons 
+  sentence <- gsub('[[:punct:]]', " ", sentence) # removes punctuation 
+  sentence <- gsub('[[:cntrl:]]', " ", sentence) # removes control characters
+  sentence <- gsub('\\d+', '', sentence) # removes numbers
+  sentence <- str_replace_all(sentence, "[^[:graph:]]", " ") 
+  sentence <- tolower(sentence) # makes all letters lowercase
+  word.list <- str_split(sentence, '\\s+') # splits the tweets by word in a list
+  words <- unlist(word.list) # turns the list into vector
+  pos_matches <- match(words, positive_words) ## returns matching 
+          #values for words from list 
+  neg_matches <- match(words, negative_words)
+  pos_matches <- !is.na(pos_matches) ## converts matching values to true of false
+  neg_matches <- !is.na(neg_matches)
+  score <- sum(pos_matches) - sum(neg_matches) # true and false are 
+                #treated as 1 and 0 so they can be added
+  return(score)
+}, positive_words, negative_words, .progress = .progress)
+scores.df <- data.frame(text = sentences,  score = scores)
+return(scores.df)
+}
+```
+##Create 
+```{r}
+require(dplyr)
+require(stringr)
+```
+#Analyze score 
+```{r}
+HarveySentimentScore <- score.sentiment(MergedData$Tweet, positive_words, negative_words, .progress='text')
+```
+```{r}
+HarveySentimentScore
+```
+#Summary and histogram of the scores
+```{r}
+summary(HarveySentimentScore$score)
+
+```
+```{r}
+str(HarveySentimentScore$score)
+```
+```{r}
+count(HarveySentimentScore$score)
+```
+
+```{r}
+hist(HarveySentimentScore$score, breaks = 12, col = "blue", border = "pink")
+```
+```{r}
+memory.limit(size = 45000)
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).

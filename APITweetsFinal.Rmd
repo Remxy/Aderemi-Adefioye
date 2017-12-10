@@ -1,0 +1,516 @@
+---
+title: "R Notebook"
+output:
+  pdf_document:
+    toc: yes
+  html_notebook: default
+  html_document:
+    toc: yes
+  word_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+```{r}
+install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")
+install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+install.packages("scales", repos = "http://cran.us.r-project.org")
+install.packages("tm", repos = "http://cran.us.r-project.org")
+install.packages("wordcloud", repos = "http://cran.us.r-project.org")
+install.packages("ROAuth", repos = "http://cran.us.r-project.org")
+install.packages("plyr", repos = "http://cran.us.r-project.org")
+install.packages("stringr", repos = "http://cran.us.r-project.org")
+install.packages("twitteR", repos = "http://cran.us.r-project.org")
+install.packages("igraph", repos = "http://cran.us.r-project.org")
+install.packages("car", repos = "http://cran.us.r-project.org")
+install.packages("text2vec", repos = "http://cran.us.r-project.org")
+install.packages("doc2vec", repos = "http://cran.us.r-project.org")
+install.packages("SnowballC", repos = "http://cran.us.r-project.org")
+install.packages("devtools", repos = "http://cran.us.r-project.org")
+install.packages("bit64", repos = "http://cran.us.r-project.org")
+install.packages("httr", repos = "http://cran.us.r-project.org")
+install.packages("factoextra", repos = "http://cran.us.r-project.org")
+install.packages("cluster", repos = "http://cran.us.r-project.org")
+install.packages("magrittr", repos = "http://cran.us.r-project.org")
+```
+```{r}
+install.packages("plyr", repos = "http://cran.us.r-project.org")
+```
+
+```{r}
+install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+```
+```{r}
+install.packages("factoextra", repos = "http://cran.us.r-project.org")
+```
+
+```{r}
+library(RColorBrewer)
+library(wordcloud)
+library(ROAuth)
+library(plyr)
+library(stringr)
+library(twitteR)
+library(tm)
+library(igraph)
+library(text2vec)
+library(SnowballC)
+library(car)
+library(devtools)
+library(bit64)
+library(httr)
+library(factoextra)
+library(cluster)
+library(magrittr)
+library(ggplot2)
+```
+
+```{r}
+download.file(url="http://curl.haxx.se/ca/cacert.pem",destfile="cacert.pem")
+```
+```{r}
+requestURL <- "https://api.twitter.com/oauth/request_token"
+accessURL <- "https://api.twitter.com/oauth/access_token"
+authURL <- "https://api.twitter.com/oauth/authorize"
+```
+```{r}
+API_key <- "2qLDuHN4LJMP5d5YK9fPzlCx7"
+API_secret <- "x8o70TIssayk12WVsWrFan7gaeE57skDodZI7PBrBHY1E10feq"
+Access_token <- "798702648-YOM2C7JtBWLixaGPlwqiSuavyXHkHQzg6rZTEqu7"
+Access_token_secret <- "RkJkqJnZz1ac5aXD2P6OeE9k3a7m0bYeVsfWb4lm2nFDG"
+```
+```{r}
+devtools::install_version("httr", version="1.0.0", repos="http://cran.us.r-project.org")
+```
+## Set Up Twitter Oauth
+```{r}
+library(twitteR)
+setup_twitter_oauth(API_key, API_secret, Access_token, Access_token_secret)
+```
+## Download Tweets from Various accounts
+```{r}
+cibcbank <- searchTwitter("@cibc", n=5000, lang = 'en')
+RoyalBank <- searchTwitter("@RBC", n=5000, lang = 'en')
+ScotiaBank <- searchTwitter("@scotiabank", n=5000, lang = 'en')
+TDBank <- searchTwitter("@TD_Canada", n=5000, lang = 'en')
+BMObank <- searchTwitter("@BMO", n=5000, lang = 'en')
+```
+```{r}
+str(cibcbank)
+```
+
+```{r}
+str(RoyalBank)
+```
+
+```{r}
+str(ScotiaBank)
+```
+
+```{r}
+str(TDBank)
+```
+
+```{r}
+str(BMObank)
+```
+#Merge the dataset together
+```{r}
+Top5Banks <- c(cibcbank, RoyalBank, ScotiaBank, TDBank, BMObank)
+```
+# turn it to dataframe
+```{r}
+Top5BanksDf <- twListToDF(Top5Banks)
+```
+#check summary
+```{r}
+summary(Top5BanksDf)
+```
+
+```{r}
+str(Top5BanksDf)
+```
+#Create Corpus to extract text from the dataset
+```{r}
+Bank_tweet_corpus = Corpus(VectorSource(Top5BanksDf$text))
+```
+#Look at the corpus
+```{r}
+Bank_tweet_corpus
+
+Bank_tweet_corpus[[1]]
+```
+
+```{r}
+inspect(Bank_tweet_corpus[1:5])
+```
+```{r}
+library(tm)
+library(SnowballC)
+```
+# Remove Punctuations
+```{r}
+Bank_tweet_corpus_clean <- tm_map(Bank_tweet_corpus, removePunctuation)
+```
+# Transform text to lower case
+```{r}
+Bank_tweet_corpus_clean = tm_map(Bank_tweet_corpus_clean, tolower)
+```
+# Remove common words
+```{r}
+Bank_tweet_corpus_clean = tm_map(Bank_tweet_corpus_clean, removeWords, c("apple", stopwords("english")))
+```
+# Remove my own words
+```{r}
+Bank_tweet_corpus_clean <- tm_map(Bank_tweet_corpus_clean, removeWords, c('bmo',  'RT', 'rt',  'are', 'that', 'day', 'days', '165', 'http', 'https', 'the', 'for',  'twitter', 'com', 'www','cibc', '2017','rbc', 'bank', 'scotiabank', 'tdbank', 'tdcanada'))
+```
+# Remove URL from text
+```{r}
+removeURL <- function(x) gsub("http[[:alnum:]]*", "", x)
+Bank_tweet_corpus_clean <- tm_map(Bank_tweet_corpus_clean, content_transformer(removeURL))
+```
+# Stem the words
+```{r}
+Bank_tweet_corpus_clean = tm_map(Bank_tweet_corpus_clean, stemDocument)
+```
+#Inspect Cleaned data
+```{r}
+inspect(Bank_tweet_corpus_clean[1:5])
+```
+
+#Data preparation - splitting text documents into words
+
+####Build a Document Term Matrix-
+```{r}
+Bank_tweet_dtm <- DocumentTermMatrix(Bank_tweet_corpus_clean)
+```
+
+```{r}
+inspect(Bank_tweet_dtm)
+```
+
+#Find frequent Terms that appeared 50 times
+```{r}
+Bank_tweet_FreqTerm <- findFreqTerms(Bank_tweet_dtm, lowfreq = 50)
+head(Bank_tweet_FreqTerm, 30)
+```
+####Create wordcloud
+```{r}
+wordcloud(Bank_tweet_corpus_clean, min.freq = 100, max.words = 90, scale=c(2.2, .5), colors = brewer.pal(8, "Dark2"), random.color = T, random.order = F)
+```
+#Partitioning the datasets- Train 75%, Test 25%
+```{r}
+Top5BanksDf.train <- Top5BanksDf[1:6381, ]
+Top5BanksDf.test <- Top5BanksDf[6382:8508, ]
+```
+```{r}
+Bank_tweet_dtm.train <- Bank_tweet_dtm[1:6381, ]
+Bank_tweet_dtm.test <- Bank_tweet_dtm[6382:8508, ]
+```
+```{r}
+Bank_tweet_corpus_clean.train <- Bank_tweet_corpus_clean[1:6381]
+Bank_tweet_corpus_clean.test <- Bank_tweet_corpus_clean[6382:8508]
+```
+# Feature selection
+```{r}
+dim(Bank_tweet_dtm.train)
+```
+```{r}
+freq <- sort(colSums(as.matrix(Bank_tweet_dtm)), decreasing=TRUE)   
+head(freq, 14)
+```
+
+```{r}
+WordTable<- data.frame(word=names(freq), freq=freq)   
+head(WordTable) 
+```
+#Plot the graph of Word Frequency
+```{r}
+TweetPlot <- ggplot(subset(WordTable, freq > 250), aes(x = reorder(word, -freq), y = freq)) +
+          geom_bar(stat = "identity") + 
+          theme(axis.text.x=element_text(angle=45, hjust=1))
+TweetPlot   
+```
+
+#Determine the Frequent Terms
+```{r}
+Tweet_Freq_Terms <- findFreqTerms(Bank_tweet_dtm.train, 10)
+length((Tweet_Freq_Terms))
+```
+# Use the 10 most frequent words to build the DTM
+```{r}
+Bank_tweet_dtm.train.nb <- DocumentTermMatrix(Bank_tweet_corpus_clean.train, control = list(dictionary =Tweet_Freq_Terms))
+```
+
+```{r}
+dim(Bank_tweet_dtm.train.nb)
+```
+
+```{r}
+Bank_tweet_dtm.test.nb <- DocumentTermMatrix(Bank_tweet_corpus_clean.test, control = list(dictionary =Tweet_Freq_Terms))
+```
+```{r}
+dim(Bank_tweet_dtm.test.nb)
+```
+#Naive Bayes Algorithm- To adopt Boolean Feature Multinominal Naive Bayes
+#Function to convert the word frequencies to yes and No Labes
+
+```{r}
+convert_count <- function(x) {
+  y <- ifelse(x > 0, 1, 0)
+  y <- factor(y, levels=c(0, 1), labels=c("No", "Yes"))
+  y
+}
+```
+#Apply the convert_count function to get final training and testing Document Term Matrix
+```{r}
+Tweet.trainNB <- apply(Bank_tweet_dtm.train.nb, MARGIN = 2, convert_count)
+```
+
+```{r}
+Tweet.testNB <- apply(Bank_tweet_dtm.test.nb, MARGIN = 2, convert_count)
+```
+#Train the Classifier
+```{r}
+install.packages("e1071",  repos = "http://cran.us.r-project.org")
+library(e1071)
+```
+
+```{r}
+system.time(Bank_tweet_classifier <- naiveBayes(Tweet.trainNB, Top5BanksDf.train$isRetweet, laplace = 1))
+```
+#Testing the prediction by using the NB Classifier to make prediction on test set
+```{r}
+system.time(TweetPred <- predict(Bank_tweet_classifier, newdata = Tweet.testNB))
+```
+#Creating Truth Table by tabulating the Prediction class labels with the Actual Class Label
+```{r}
+table("Predictions" = TweetPred, "Actual" = Top5BanksDf.test$isRetweet)
+```
+
+```{r}
+install.packages("caret", repos = "http://cran.us.r-project.org")
+library(caret)
+```
+
+A (confusion matrix)[https://en.wikipedia.org/wiki/Confusion_matrix] counts how many times the predicted category mapped to the various true categories.
+#Prepare Confusion Matrix 
+```{r}
+Bank_Tweet_ConfMatrix <- confusionMatrix(TweetPred, Top5BanksDf.test$isRetweet)
+```
+
+```{r}
+Bank_Tweet_ConfMatrix
+```
+```{r}
+Bank_Tweet_ConfMatrix$byClass
+```
+```{r}
+Bank_Tweet_ConfMatrix$overall
+```
+#Prediction Accuracy
+```{r}
+Bank_Tweet_ConfMatrix$overall['Accuracy']
+```
+
+Part Two
+
+#Calculate number of tweets
+```{r}
+no_of_tweets = c(length(Bank_tweet_corpus_clean))
+no_of_tweets
+```
+#Clustering By Similarity Terms
+
+#For ease of Processing , there is need to remove uninteresting or infrequent words.
+
+#Remove Sparse Terms from the Term-document matrix-86% Empty space------
+```{r}
+Bank_Tweet_SparseTM <- removeSparseTerms(Bank_tweet_dtm, sparse = 0.86)
+Bank_Tweet_SparseTM
+```
+
+#Create DOCUMENT Term Matrix
+```{r}
+Bank_tweet_dtm <- DocumentTermMatrix(Bank_tweet_corpus_clean)
+Bank_tweet_dtm_matrix <- as.matrix(Bank_tweet_dtm)
+Bank_tweet_dtm_matrix <- sort(colSums(Bank_tweet_dtm_matrix), decreasing = TRUE)
+head(Bank_tweet_dtm_matrix)
+```
+
+```{r}
+Bank_tweet_dtm_matrix.df <- as.data.frame(Bank_tweet_dtm_matrix)
+```
+#Scale the data
+```{r}
+Bank_tweet_dtm.scale <- scale(Bank_tweet_dtm_matrix.df, center = TRUE, scale = TRUE)
+```
+#create the distance matrix
+```{r}
+Bank_tweet.dist <- dist(Bank_tweet_dtm.scale, method = "euclidian", diag = FALSE, upper = FALSE, p = 5)
+```
+#Cluster the data
+```{r}
+Bank_tweet.dist.fit <- hclust(Bank_tweet.dist, method = "ward.D")
+```
+##Visualization
+```{r}
+library(stats)
+plot(Bank_tweet.dist.fit, xlab = "Popular Words Distr", ylab = "Height", hang = -0.01, check = TRUE, axes = TRUE, frame.plot = TRUE, ann = TRUE, main = "Cluster - Top 5 Banks Tweet", col = "red")
+dev.copy(jpeg, 'HeightDistr.jpeg')
+dev.off()
+```
+#Visualize the result using k=3 Cluster
+```{r}
+plot(Bank_tweet.dist.fit, hang = -0.01)
+groups <- cutree(Bank_tweet.dist.fit, k =3)
+rect.hclust(Bank_tweet.dist.fit, k = 3, border = "red")
+```
+
+#Next is to determine the positive and negative words in the tweets of the five banks.
+##Scan Positive and Negative words into R
+```{r}
+pos_words <- scan("C:/Users/remmy/Documents/Capstone/positive_words.txt", what="character", comment.char=";")
+neg_words <- scan("C:/Users/remmy/Documents/Capstone/negative_words.txt", what="character", comment.char=";")
+```
+
+#Add your words into the positve and negative words list----okay
+```{r}
+pos_words <- c(pos_words, 'upgrade', 'new', 'nice', 'good', 'horizon', 'donation')
+neg_words <- c(neg_words, 'wtf', 'wait', 'waiting', 'bad', 'behind', 'severe', 'frightening', 'blowout', 'storms', 'tornadoes', 'damaged', 'terrible', 'ugly', 'back', 'worse', 'shitty', 'bad', 'no', 'freaking', 'suck', 'horrible')
+```
+
+#Define Function to calculate the sentiment score---okay
+```{r}
+score.sentiment <- function(sentences, pos_words, neg_words, .progress = 'none')
+{
+require(plyr)
+require(stringr)
+scores <- laply(sentences, function(sentence, pos_words, neg_words) {
+  sentence <- gsub('https://'," ", sentence) # removes https://
+  sentence <- gsub('http://'," ", sentence) # removes http://
+  sentence <- gsub('[^[:graph:]]', " ", sentence) ## removes graphic characters 
+       #like emoticons 
+  sentence <- gsub('[[:punct:]]', " ", sentence) # removes punctuation 
+  sentence <- gsub('[[:cntrl:]]', " ", sentence) # removes control characters
+  sentence <- gsub('\\d+', '', sentence) # removes numbers
+  sentence <- str_replace_all(sentence, "[^[:graph:]]", " ") 
+  sentence <- tolower(sentence) # makes all letters lowercase
+  word.list <- str_split(sentence, '\\s+') # splits the tweets by word in a list
+  words <- unlist(word.list) # turns the list into vector
+  pos_matches <- match(words, pos_words) ## returns matching 
+          #values for words from list 
+  neg_matches <- match(words, neg_words)
+  pos_matches <- !is.na(pos_matches) ## converts matching values to true of false
+  neg_matches <- !is.na(neg_matches)
+  score <- sum(pos_matches) - sum(neg_matches) # true and false are 
+                #treated as 1 and 0 so they can be added
+  return(score)
+}, pos_words, neg_words, .progress = .progress)
+scores.df <- data.frame(text = sentences,  score = scores)
+return(scores.df)
+}
+```
+##Extract text for each of the banks
+```{r}
+BMObank_text <- sapply(BMObank, function(x) x$getText())
+cibcbank_text <- sapply(cibcbank, function(x) x$getText())
+RoyalBank_text <- sapply(RoyalBank, function(x) x$getText())
+ScotiaBank_text <- sapply(ScotiaBank, function(x) x$getText())
+TDBank_text <- sapply(TDBank, function(x) x$getText())
+```
+
+######Create dataframe for each bank's tweet
+```{r}
+library(dplyr)
+library(stringr)
+BMObankdf <- as.data.frame(BMObank_text)
+cibcbankdf <- as.data.frame(cibcbank_text)
+RoyalBankdf <- as.data.frame(RoyalBank_text)
+ScotiaBankdf <- as.data.frame(ScotiaBank_text)
+TDBankdf <- as.data.frame(TDBank_text)
+```
+
+#Analyze score for tOP 5 Banks------okay
+```{r}
+Top5BanksSentimentScoce <- score.sentiment(Top5BanksDf$text, pos_words, neg_words, .progress='text')
+```
+#Summary and histogram of the scores for Top 5 Banks
+```{r}
+summary(Top5BanksSentimentScoce$score)
+hist(Top5BanksSentimentScoce$score, breaks = 12, col = "blue", border = "pink")
+```
+#Analyze score for each bank
+```{r}
+BMOscores <- score.sentiment(BMObankdf$BMObank_text, pos_words, neg_words, .progress='text')
+cibcscores <- score.sentiment(cibcbankdf$cibcbank_text, pos_words, neg_words, .progress='text')
+RBCscores <- score.sentiment(RoyalBankdf$RoyalBank_text, pos_words, neg_words, .progress='text')
+Scotiascores <- score.sentiment(ScotiaBankdf$ScotiaBank_text, pos_words, neg_words, .progress='text')
+TDscores <- score.sentiment(TDBankdf$TDBank_text, pos_words, neg_words, .progress='text')
+```
+#Summary of the scores
+```{r}
+summary(BMOscores$score)
+```
+
+```{r}
+summary(cibcscores$score)
+```
+```{r}
+summary(RBCscores$score)
+```
+
+```{r}
+summary(Scotiascores$score)
+```
+
+```{r}
+summary(TDscores$score)
+```
+###histogram of the scores
+```{r}
+hist(BMOscores$score, breaks = 12, col = "blue", border = "pink")
+```
+
+```{r}
+hist(cibcscores$score, breaks = 12, col = "blue", border = "pink")
+```
+
+```{r}
+hist(RBCscores$score, breaks = 12, col = "blue", border = "pink")
+```
+
+```{r}
+hist(Scotiascores$score, breaks = 12, col = "blue", border = "pink")
+```
+
+```{r}
+hist(TDscores$score, breaks = 12, col = "blue", border = "pink")
+```
+###Count of the scores
+```{r}
+table(BMOscores$score)
+```
+
+```{r}
+table(cibcscores$score)
+```
+
+```{r}
+table(RBCscores$score)
+```
+
+```{r}
+table(Scotiascores$score)
+```
+
+```{r}
+table(TDscores$score)
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
