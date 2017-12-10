@@ -24,24 +24,11 @@ install.packages("stringr", repos = "http://cran.us.r-project.org")
 install.packages("twitteR", repos = "http://cran.us.r-project.org")
 install.packages("igraph", repos = "http://cran.us.r-project.org")
 install.packages("car", repos = "http://cran.us.r-project.org")
-install.packages("text2vec", repos = "http://cran.us.r-project.org")
-install.packages("doc2vec", repos = "http://cran.us.r-project.org")
 install.packages("SnowballC", repos = "http://cran.us.r-project.org")
 install.packages("devtools", repos = "http://cran.us.r-project.org")
 install.packages("bit64", repos = "http://cran.us.r-project.org")
 install.packages("httr", repos = "http://cran.us.r-project.org")
-install.packages("factoextra", repos = "http://cran.us.r-project.org")
-install.packages("cluster", repos = "http://cran.us.r-project.org")
 install.packages("magrittr", repos = "http://cran.us.r-project.org")
-```
-```{r}
-install.packages("plyr", repos = "http://cran.us.r-project.org")
-```
-
-```{r}
-install.packages("ggplot2", repos = "http://cran.us.r-project.org")
-```
-```{r}
 install.packages("factoextra", repos = "http://cran.us.r-project.org")
 ```
 
@@ -54,18 +41,14 @@ library(stringr)
 library(twitteR)
 library(tm)
 library(igraph)
-library(text2vec)
 library(SnowballC)
 library(car)
 library(devtools)
 library(bit64)
 library(httr)
-library(factoextra)
-library(cluster)
 library(magrittr)
 library(ggplot2)
 ```
-
 ```{r}
 download.file(url="http://curl.haxx.se/ca/cacert.pem",destfile="cacert.pem")
 ```
@@ -99,7 +82,6 @@ BMObank <- searchTwitter("@BMO", n=5000, lang = 'en')
 ```{r}
 str(cibcbank)
 ```
-
 ```{r}
 str(RoyalBank)
 ```
